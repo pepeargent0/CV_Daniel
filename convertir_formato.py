@@ -1,5 +1,6 @@
 import json
 import os
+import numpy as np
 
 def convert(size, box):
     dw = 1. / size[0]
@@ -14,7 +15,7 @@ def convert(size, box):
     h = h * dh
     return (x, y, w, h)
 
-def convert_annotation(coco_json, output_dir):
+def convert_annotation(coco_json, output_dir, category_mapping):
     with open(coco_json) as f:
         data = json.load(f)
 
@@ -30,26 +31,34 @@ def convert_annotation(coco_json, output_dir):
         size = (image_info['width'], image_info['height'])
 
         yolo_box = convert(size, bbox)
-        class_id = category_id - 1  # Asumiendo que category_id comienza en 1
+        class_name = int(category_mapping[category_id])
 
         image_filename = image_info['file_name']
         label_filename = os.path.splitext(image_filename)[0] + '.txt'
         label_filepath = os.path.join(output_dir, label_filename)
 
         with open(label_filepath, 'a') as f:
-            f.write(f"{class_id} " + " ".join(map(str, yolo_box)) + '\n')
+            f.write(f"{class_name} " + " ".join(map(str, yolo_box)) + '\n')
 
 # Directorio donde están los archivos COCO JSON
-coco_json_dir = 'dataset/valid/labels'
+coco_json_dir = '/Users/pepeargentoo/CV_Daniel/dataset/valid/labels'
 # Directorio donde se guardarán los archivos YOLO
-output_dir = 'dataset/valid/labels'
+output_dir = '/Users/pepeargentoo/CV_Daniel/dataset/valid/labels'
 
 # Crear el directorio de salida si no existe
 os.makedirs(output_dir, exist_ok=True)
 
-# Recorrer todos los archivos JSON en el directorio
+# Mapeo de categorías (ID a nombre)
+category_mapping = {}
 for file_name in os.listdir(coco_json_dir):
     if file_name.endswith(".json"):
         json_path = os.path.join(coco_json_dir, file_name)
-        convert_annotation(json_path, output_dir)
+        with open(json_path) as f:
+            data = json.load(f)
+            for category in data['categories']:
+                category_mapping[category['id']] = category['name']
 
+for file_name in os.listdir(coco_json_dir):
+    if file_name.endswith(".json"):
+        json_path = os.path.join(coco_json_dir, file_name)
+        convert_annotation(json_path, output_dir, category_mapping)
